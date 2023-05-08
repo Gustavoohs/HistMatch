@@ -34,7 +34,6 @@ from .hist_match_dialog import histmatchDialog
 import os.path
 
 import numpy as np
-from skimage.exposure import match_histograms
 
 
 class histmatch:
@@ -165,7 +164,7 @@ class histmatch:
     def initGui(self):
         """Create the menu entries and toolbar icons inside the QGIS GUI."""
 
-        icon_path = ':/plugins/hist_match/icon.png'
+        icon_path = 'C:/hist_match_plugin/hist_match/icon.png'
         self.add_action(
             icon_path,
             text=self.tr(u'Histogram Matching'),
@@ -281,28 +280,49 @@ class histmatch:
             self.variables()
 
             ds1 = gdal.Open(str(self.layer1.source()))
-            img1 = ds1.ReadAsArray()
+            src = ds1.ReadAsArray()
 
             
 
             ds2 = gdal.Open(str(self.layer2.source()))
-            img2 = ds2.ReadAsArray()
+            dst = ds2.ReadAsArray()
             
+              # Get radiometric resolution
+            bits = 2 ** (src.dtype.itemsize * 8)
 
-            if len(img1.shape) == 3:
+            if src.shape[-1] is True:
+                # Create LUTs for each band of the matched image
+                matched = np.zeros_like(src)
+                for i in range(src.shape[-1]):
+                 src_cdf = np.cumsum(np.histogram(src[...,i], bins=bits, range=(0, bits-1), density=True)[0])
+                 dst_cdf = np.cumsum(np.histogram(dst[...,i], bins=bits, range=(0, bits-1), density=True)[0])
+                 lut = np.interp(src_cdf, dst_cdf, np.arange(bits))
+                 
+                 matched[...,i] = lut[src[...,i]]
+        
+            # Create the LUT for the matched image
+            else:
+                src_cdf = np.cumsum(np.histogram(src, bins=bits, range=(0, bits-1), density=True)[0])
+                dst_cdf = np.cumsum(np.histogram(dst, bins=bits, range=(0, bits-1), density=True)[0])
+                lut = np.interp(src_cdf, dst_cdf, np.arange(bits))
+
+                # Apply the LUT to the source image
+                matched = lut[src]
+
+            '''if len(img1.shape) == 3:
                 res = np.zeros_like(img1)
                 for i in range(img1.shape[2]):
                     res[:,:,i] = match_histograms(img1[:,:,i], img2[:,:,i])
             else:
-                res = match_histograms(img1, img2)
+                res = match_histograms(img1, img2)'''
 
             driver = gdal.GetDriverByName("GTiff")
 
-            out = driver.Create(self.out, res.shape[1], res.shape[0], 1, gdal.GDT_Float32)
+            out = driver.Create(self.out, matched.shape[1], matched.shape[0], 1, gdal.GDT_Float32)
 
             out.SetGeoTransform(ds1.GetGeoTransform())
             out.SetProjection(ds1.GetProjection())
-            out.GetRasterBand(1).WriteArray(res)
+            out.GetRasterBand(1).WriteArray(matched)
             out.FlushCache()
             out = None
         
