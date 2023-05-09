@@ -206,7 +206,7 @@ class histmatch:
         lyr = str(QFileDialog.getOpenFileName(caption="Image", filter="Images (*.tif)")[0])
         
         if (lyr != ""):
-            self.iface.addRasterLayer(lyr, str.split(os.path.basename(lyr),".") [0],"GTiff")
+            self.iface.addRasterLayer(lyr, str.split(os.path.basename(lyr),".") [0],"gdal")
             self.load_input()
     
     def open_file2(self):
@@ -214,7 +214,7 @@ class histmatch:
         lyr = str(QFileDialog.getOpenFileName(caption="Image", filter="Images (*.tif)")[0])
         
         if (lyr != ""):
-            self.iface.addRasterLayer(lyr, str.split(os.path.basename(lyr),".") [0],"GTiff")
+            self.iface.addRasterLayer(lyr, str.split(os.path.basename(lyr),".") [0],"gdal")
             self.load_input2()
 
 
@@ -225,7 +225,6 @@ class histmatch:
         for lyr in QgsProject.instance().mapLayers().values():
             if lyr.name() == lyr_name:
                 layer = lyr
-            break
         return layer
         
     def get_layer2(self):
@@ -283,6 +282,7 @@ class histmatch:
             src = ds1.ReadAsArray()
 
             
+
 
             ds2 = gdal.Open(str(self.layer2.source()))
             dst = ds2.ReadAsArray()
