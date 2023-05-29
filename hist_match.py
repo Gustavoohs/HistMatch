@@ -287,18 +287,35 @@ class histmatch:
             ds2 = gdal.Open(str(self.layer2.source()))
             dst = ds2.ReadAsArray()
             
+            src = src.swapaxes(0,2).swapaxes(0,1)
+            dst = dst.swapaxes(0,2).swapaxes(0,1)
+
               # Get radiometric resolution
             bits = 2 ** (src.dtype.itemsize * 8)
 
-            if src.shape[-1] is True:
-                # Create LUTs for each band of the matched image
+            
+            if src.dtype != dst.dtype:
+                raise('The source file has a different radiometric resolution than the target!')
+
+            if len(src.shape) == 3:
+            # Create LUTs for each band of the matched image
                 matched = np.zeros_like(src)
                 for i in range(src.shape[-1]):
-                 src_cdf = np.cumsum(np.histogram(src[...,i], bins=bits, range=(0, bits-1), density=True)[0])
-                 dst_cdf = np.cumsum(np.histogram(dst[...,i], bins=bits, range=(0, bits-1), density=True)[0])
-                 lut = np.interp(src_cdf, dst_cdf, np.arange(bits))
-                 
-                 matched[...,i] = lut[src[...,i]]
+                    src_cdf = np.cumsum(np.histogram(src[...,i], bins=bits, range=(0, bits-1), density=True)[0])
+                    dst_cdf = np.cumsum(np.histogram(dst[...,i], bins=bits, range=(0, bits-1), density=True)[0])
+                    lut = np.interp(src_cdf, dst_cdf, np.arange(bits))
+
+                    matched[...,i] = lut[src[...,i]]
+                driver = gdal.GetDriverByName("GTiff")
+
+                out = driver.Create(self.out, matched.shape[1], matched.shape[0], matched.shape[2], gdal.GDT_Float32)       
+                for i in range(matched.shape[2]):
+                    out.GetRasterBand(i + 1).WriteArray(matched[...,i])
+                    out.SetGeoTransform(ds1.GetGeoTransform())
+                    out.SetProjection(ds1.GetProjection())
+                    out.FlushCache()           
+
+                self.iface.addRasterLayer(self.out)
         
             # Create the LUT for the matched image
             else:
@@ -308,7 +325,17 @@ class histmatch:
 
                 # Apply the LUT to the source image
                 matched = lut[src]
+                driver = gdal.GetDriverByName("GTiff")
 
+                out = driver.Create(self.out, matched.shape[1], matched.shape[0], 1, gdal.GDT_Float32)
+
+                out.SetGeoTransform(ds1.GetGeoTransform())
+                out.SetProjection(ds1.GetProjection())
+                out.GetRasterBand(1).WriteArray(matched)
+                out.FlushCache()
+                out = None
+
+                self.iface.addRasterLayer(self.out)
             '''if len(img1.shape) == 3:
                 res = np.zeros_like(img1)
                 for i in range(img1.shape[2]):
@@ -316,19 +343,5 @@ class histmatch:
             else:
                 res = match_histograms(img1, img2)'''
 
-            driver = gdal.GetDriverByName("GTiff")
-
-            out = driver.Create(self.out, matched.shape[1], matched.shape[0], 1, gdal.GDT_Float32)
-
-            out.SetGeoTransform(ds1.GetGeoTransform())
-            out.SetProjection(ds1.GetProjection())
-            out.GetRasterBand(1).WriteArray(matched)
-            out.FlushCache()
-            out = None
-        
-
             
-            # Do something useful here - delete the line containing pass and
-            # substitute with your code.
-            self.iface.addRasterLayer(self.out)
             
