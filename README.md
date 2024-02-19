@@ -2,7 +2,8 @@
 Welcome to the histogram matching plugin!
 
 ![](/icon.png)
-
+##
+This plugin implements the algorithm for balancing the colors of an image based on a reference. The core of the method is the comparison of the cumulative distribution function of the two images. The method works for both multi-band and single-band images.
  ##
 ![](/hist_explain.png)
  ## To do:
