@@ -272,6 +272,8 @@ class histmatch:
         self.dlg.toolButton.clicked.connect(self.open_file)
         self.dlg.toolButton_2.clicked.connect(self.open_file2)
         self.dlg.toolButton_3.clicked.connect(self.save_result)
+        self.dlg.button_box.accepted.disconnect()
+        self.dlg.button_box.accepted.connect(self.run)
         result = self.dlg.exec_()
 
         # See if OK was pressed
