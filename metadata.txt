@@ -6,7 +6,7 @@
 name=Histogram Matching
 qgisMinimumVersion=3.0
 description=Image histogram matching process
-version=0.1
+version=0.2.0
 author=Gustavo Ferreira
 email=gustavoohs@gmail.com
 
